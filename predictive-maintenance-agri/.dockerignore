@@ -1,0 +1,9 @@
+data/raw/sensor.csv
+data/processed/
+mlflow.db
+mlruns/
+models/
+venv/
+.venv/
+__pycache__/
+*.pyc
