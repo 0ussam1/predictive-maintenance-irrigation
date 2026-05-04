@@ -1,7 +1,2 @@
 venv/
 .venv/
-predictive-maintenance-agri/data/raw/sensor.csv
-predictive-maintenance-agri/data/processed/
-predictive-maintenance-agri/mlflow.db
-predictive-maintenance-agri/mlruns/
-predictive-maintenance-agri/models/
