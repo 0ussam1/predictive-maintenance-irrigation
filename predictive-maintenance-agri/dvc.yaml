@@ -1,0 +1,45 @@
+stages:
+  preprocess:
+    cmd: python src/dataops/preprocessing.py
+    deps:
+      - data/raw/sensor.csv
+      - src/dataops/preprocessing.py
+    outs:
+      - data/processed/irrigation_cleaned.csv
+
+  features:
+    cmd: python src/dataops/features.py
+    deps:
+      - data/processed/irrigation_cleaned.csv
+      - src/dataops/features.py
+    outs:
+      - data/processed/pump_features.csv
+
+  validate:
+    cmd: python src/dataops/validation.py
+    deps:
+      - data/processed/pump_features.csv
+      - src/dataops/validation.py
+
+  report:
+    cmd: python src/dataops/quality_report.py
+    deps:
+      - data/processed/pump_features.csv
+      - src/dataops/quality_report.py
+    outs:
+      - data/reports/quality_report_final.json
+
+  train:
+    cmd: python src/models/train.py
+    deps:
+      - data/processed/pump_features.csv
+      - src/models/train.py
+    outs:
+      - models/model.pkl
+
+  evaluate:
+    cmd: python src/models/evaluate.py
+    deps:
+      - data/processed/pump_features.csv
+      - models/model.pkl
+      - src/models/evaluate.py

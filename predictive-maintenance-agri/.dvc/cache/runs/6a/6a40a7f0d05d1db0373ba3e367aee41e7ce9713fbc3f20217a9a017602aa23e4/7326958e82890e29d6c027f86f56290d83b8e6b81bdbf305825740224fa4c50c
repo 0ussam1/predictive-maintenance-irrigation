@@ -1,0 +1,23 @@
+cmd: python src/features/build_features.py
+deps:
+- path: data/processed/test.csv
+  hash: md5
+  md5: ea1a77b9dbac3a5b239e4d48ef6045c8
+  size: 99332
+- path: data/processed/train.csv
+  hash: md5
+  md5: 69623c7b88bf1df1ce2d3e0a474f0a7f
+  size: 396782
+- path: src/features/build_features.py
+  hash: md5
+  md5: b889130d244c372075d896899a7d915a
+  size: 711
+outs:
+- path: data/processed/test_features.csv
+  hash: md5
+  md5: ea1a77b9dbac3a5b239e4d48ef6045c8
+  size: 99332
+- path: data/processed/train_features.csv
+  hash: md5
+  md5: 69623c7b88bf1df1ce2d3e0a474f0a7f
+  size: 396782

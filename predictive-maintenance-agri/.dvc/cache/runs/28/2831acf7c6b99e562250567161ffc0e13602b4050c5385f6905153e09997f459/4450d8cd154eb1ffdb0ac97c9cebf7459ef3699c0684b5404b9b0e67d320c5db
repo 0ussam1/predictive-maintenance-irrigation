@@ -1,0 +1,15 @@
+cmd: python src/dataops/quality_report.py
+deps:
+- path: data/processed/pump_features.csv
+  hash: md5
+  md5: 1f97bde0f6493b04c71699e4ffa6066c
+  size: 45234431
+- path: src/dataops/quality_report.py
+  hash: md5
+  md5: 1e7bb553014d5950ac48d0f8a99d34cf
+  size: 973
+outs:
+- path: data/reports/quality_report_final.json
+  hash: md5
+  md5: dd1e2eb19386462133ba0f6cda443cea
+  size: 7286

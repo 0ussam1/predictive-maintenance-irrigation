@@ -1,0 +1,15 @@
+cmd: python src/dataops/preprocessing.py
+deps:
+- path: data/raw/sensor.csv
+  hash: md5
+  md5: ac2dc386843ab400a1048c9c1623daa4
+  size: 124058460
+- path: src/dataops/preprocessing.py
+  hash: md5
+  md5: a5acc9f750c3637725b024daa5e795a0
+  size: 3014
+outs:
+- path: data/processed/irrigation_cleaned.csv
+  hash: md5
+  md5: c565b796e7c07db5479d80582d03d4fe
+  size: 23355628

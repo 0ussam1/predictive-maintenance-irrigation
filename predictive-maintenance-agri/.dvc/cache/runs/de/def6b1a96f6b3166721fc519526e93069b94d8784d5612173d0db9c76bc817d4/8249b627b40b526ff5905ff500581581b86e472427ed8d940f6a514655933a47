@@ -1,0 +1,15 @@
+cmd: python src/dataops/features.py
+deps:
+- path: data/processed/irrigation_cleaned.csv
+  hash: md5
+  md5: c565b796e7c07db5479d80582d03d4fe
+  size: 23355628
+- path: src/dataops/features.py
+  hash: md5
+  md5: 6cf91c9899622b290bb4090b423689d6
+  size: 1629
+outs:
+- path: data/processed/pump_features.csv
+  hash: md5
+  md5: 1f97bde0f6493b04c71699e4ffa6066c
+  size: 45234431

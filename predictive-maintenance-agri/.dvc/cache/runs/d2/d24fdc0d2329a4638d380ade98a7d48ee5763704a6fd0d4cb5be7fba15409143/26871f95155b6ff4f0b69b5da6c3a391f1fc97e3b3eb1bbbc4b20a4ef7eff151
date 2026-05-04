@@ -1,0 +1,15 @@
+cmd: python src/models/train.py
+deps:
+- path: data/processed/pump_features.csv
+  hash: md5
+  md5: 1f97bde0f6493b04c71699e4ffa6066c
+  size: 45234431
+- path: src/models/train.py
+  hash: md5
+  md5: 07d081464f5608508b949ba296feb951
+  size: 2281
+outs:
+- path: models/model.pkl
+  hash: md5
+  md5: 3fc4d1925b2ecf8ad1353fca9d997471
+  size: 112162

@@ -1,0 +1,19 @@
+cmd: python src/data/preprocess.py
+deps:
+- path: data/raw/ai4i2020.csv
+  hash: md5
+  md5: 1ecf8675b6a88e32ff6d7e8ebf5443ba
+  size: 404981
+- path: src/data/preprocess.py
+  hash: md5
+  md5: 8c911751f360dfe059fe4ce4692e524e
+  size: 1039
+outs:
+- path: data/processed/test.csv
+  hash: md5
+  md5: ea1a77b9dbac3a5b239e4d48ef6045c8
+  size: 99332
+- path: data/processed/train.csv
+  hash: md5
+  md5: 69623c7b88bf1df1ce2d3e0a474f0a7f
+  size: 396782

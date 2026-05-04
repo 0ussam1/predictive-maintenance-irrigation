@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irrigation Intelligence Pro | MLOps Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --critical: #8b1d1d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: url('static/bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(2, 6, 23, 0.4) 0%, rgba(2, 6, 23, 0.9) 100%);
+            z-index: -1;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Card Base */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        header {
+            margin-bottom: 2.5rem;
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 0.4rem 1rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-live .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse-dot 2s infinite;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Form Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .field-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-group label i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(2, 6, 23, 0.8);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-submit {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 1.25rem;
+            border-radius: 18px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Result Panel */
+        .result-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .status-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            margin-bottom: 2rem;
+        }
+
+        .circle-svg {
+            transform: rotate(-90deg);
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 12;
+        }
+
+        .circle-progress {
+            fill: none;
+            stroke: #334155;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
+            stroke-dasharray: 628;
+            stroke-dashoffset: 628;
+        }
+
+        .prob-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .prob-num {
+            font-size: 3.5rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .prob-unit {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        .status-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .status-badge {
+            padding: 0.6rem 1.5rem;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .alert-optimisé { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .alert-normale { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .alert-need_fix { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); }
+        .alert-critique { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .reco-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            width: 100%;
+            text-align: left;
+            margin-top: auto;
+        }
+
+        .reco-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reco-content {
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        /* Animations */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .loader {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(2, 6, 23, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            border-radius: 32px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--glass-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; }
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Input Section -->
+        <div class="glass-card">
+            <header>
+                <div class="badge-live">
+                    <span class="dot"></span> Systéme de Diagnostic IoT Actif
+                </div>
+                <h1>Intelligence Irrigation</h1>
+                <p style="color: var(--text-dim); margin-top: 0.5rem; margin-bottom: 1.5rem;">Plateforme MLOps de maintenance prédictive pour équipements agricoles.</p>
+                <a href="/history" style="display: inline-block; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text); text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;"><i class="fa-solid fa-clock-rotate-left"></i> Voir l'historique</a>
+                <a href="/guide" style="display: inline-block; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; margin-left: 0.5rem; transition: all 0.2s;"><i class="fa-solid fa-book"></i> Guide d'utilisation</a>
+                <button type="button" onclick="resetToDefaults()" style="display: inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.6rem 1.2rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: 0.5rem; transition: all 0.2s;"><i class="fa-solid fa-trash-can"></i> Réinitialiser</button>
+            </header>
+
+            <form id="diag-form">
+                <div class="input-grid">
+                    <div class="field-group" style="grid-column: span 2;">
+                        <label><i class="fa-solid fa-microchip"></i> ID DE L'ÉQUIPEMENT</label>
+                        <input type="text" id="machine_id" value="PUMP-AGRI-01" placeholder="ex: PUMP-001">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-temperature-high"></i> TEMP. MOTEUR (capteur)</label>
+                        <input type="number" step="0.1" id="temp_moteur" value="25.3">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-wave-square"></i> VIBRATION (capteur)</label>
+                        <input type="number" step="0.01" id="vibration" value="0.16">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-bolt"></i> COURANT (capteur)</label>
+                        <input type="number" step="0.1" id="courant" value="8.6">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-plug"></i> VOLTAGE (capteur)</label>
+                        <input type="number" step="0.1" id="voltage" value="220.1">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-droplet"></i> PRESSION EAU (capteur)</label>
+                        <input type="number" step="0.01" id="pression" value="1.50">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-gauge-high"></i> DÉBIT EAU (capteur)</label>
+                        <input type="number" step="0.1" id="debit" value="20.0">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-rotate"></i> RPM (capteur)</label>
+                        <input type="number" step="0.1" id="rpm" value="2027.0">
+                    </div>
+
+                    <div class="field-group">
+                        <label><i class="fa-solid fa-clock"></i> HEURES FONCT.</label>
+                        <input type="number" step="0.1" id="heures" value="1617.0">
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> GÉNÉRER LE DIAGNOSTIC PRO
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Result Section -->
+        <div class="glass-card result-panel">
+            <div class="loader" id="loader">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="status-header">
+                <div id="status-badge" class="status-badge alert-normal" style="display: none;">NORMAL</div>
+                <h2 id="status-title" style="font-size: 1.5rem; font-weight: 800;">État de Santé</h2>
+            </div>
+
+            <div class="status-container">
+                <svg class="circle-svg" width="240" height="240">
+                    <circle class="circle-bg" cx="120" cy="120" r="100"></circle>
+                    <circle class="circle-progress" id="progress-bar" cx="120" cy="120" r="100"></circle>
+                </svg>
+                <div class="prob-center">
+                    <span class="prob-num" id="prob-display">--</span>
+                    <span class="prob-unit">% RISQUE</span>
+                </div>
+            </div>
+
+            <p id="notif-text" style="color: var(--text-dim); margin-bottom: 2rem; max-width: 250px;">Lancez une analyse pour évaluer les risques de panne.</p>
+
+            <div class="reco-card" id="reco-card" style="display: none;">
+                <h3><i class="fa-solid fa-shield-halved"></i> RECOMMANDATION</h3>
+                <div class="reco-content" id="reco-text">--</div>
+            </div>
+    <script>
+        const form = document.getElementById('diag-form');
+        const loader = document.getElementById('loader');
+        const progressBar = document.getElementById('progress-bar');
+        const probDisplay = document.getElementById('prob-display');
+        const statusBadge = document.getElementById('status-badge');
+        const statusTitle = document.getElementById('status-title');
+        const notifText = document.getElementById('notif-text');
+        const recoCard = document.getElementById('reco-card');
+        const recoText = document.getElementById('reco-text');
+
+        // IDs et valeurs par défaut
+        const defaultValues = {
+            'machine_id': 'PUMP-AGRI-01',
+            'temp_moteur': 25.3,
+            'vibration': 0.16,
+            'courant': 8.6,
+            'voltage': 220.1,
+            'pression': 1.50,
+            'debit': 20.0,
+            'rpm': 2027.0,
+            'heures': 1617.0
+        };
+
+        const inputIds = Object.keys(defaultValues);
+
+        function resetToDefaults() {
+            if(confirm("Réinitialiser tous les capteurs aux valeurs par défaut ?")) {
+                inputIds.forEach(id => {
+                    localStorage.removeItem(id);
+                    document.getElementById(id).value = defaultValues[id];
+                });
+                alert("Valeurs réinitialisées. Le cache a été vidé.");
+                location.reload();
+            }
+        }
+
+        // 1. Charger les données sauvegardées lors du rafraîchissement
+        window.addEventListener('DOMContentLoaded', () => {
+            // Vérification de version pour forcer le nettoyage si nécessaire
+            const APP_VERSION = "2.0";
+            if (localStorage.getItem('app_version') !== APP_VERSION) {
+                localStorage.clear();
+                localStorage.setItem('app_version', APP_VERSION);
+                console.log("Nouvelle version détectée : localStorage vidé.");
+            }
+
+            inputIds.forEach(id => {
+                const savedValue = localStorage.getItem(id);
+                if (savedValue !== null) {
+                    document.getElementById(id).value = savedValue;
+                }
+                
+                // 2. Sauvegarder automatiquement chaque modification
+                document.getElementById(id).addEventListener('input', (e) => {
+                    localStorage.setItem(id, e.target.value);
+                });
+            });
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Effet visuel : on réinitialise la jauge à 0 avant d'animer la nouvelle valeur
+            progressBar.style.transition = 'none';
+            progressBar.style.strokeDashoffset = 2 * Math.PI * 100;
+            // Force reflow pour appliquer l'annulation de la transition
+            void progressBar.offsetWidth;
+            
+            loader.style.display = 'flex';
+            
+            const payload = {
+                machine_id: document.getElementById('machine_id').value || "PUMP-000",
+                temperature_moteur: parseFloat(document.getElementById('temp_moteur').value) || 0.0,
+                vibration: parseFloat(document.getElementById('vibration').value) || 0.0,
+                courant_electrique: parseFloat(document.getElementById('courant').value) || 0.0,
+                voltage: parseFloat(document.getElementById('voltage').value) || 0.0,
+                pression_eau: parseFloat(document.getElementById('pression').value) || 0.0,
+                debit_eau: parseFloat(document.getElementById('debit').value) || 0.0,
+                rpm: parseFloat(document.getElementById('rpm').value) || 0.0,
+                heures_fonctionnement: parseFloat(document.getElementById('heures').value) || 0.0
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                // On réactive la transition CSS pour l'animation
+                progressBar.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease';
+                updateUI(data, payload);
+                
+            } catch (error) {
+                alert("Erreur de connexion à l'API. Assurez-vous que le serveur tourne !");
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+
+        let predictionHistory = JSON.parse(localStorage.getItem('diag_history')) || [];
+
+        function updateUI(data, payload) {
+            const prob = data.probabilite_panne * 100;
+            
+            // Update Circle
+            const circumference = 2 * Math.PI * 100;
+            const offset = circumference - (prob / 100) * circumference;
+            progressBar.style.strokeDashoffset = offset;
+            
+            // Update Stats
+            probDisplay.innerText = Math.round(prob);
+            statusBadge.style.display = 'inline-block';
+            statusBadge.innerText = data.niveau_alerte.replace('_', ' ');
+            
+            // Dynamic Colors
+            let color = '#334155';
+            let badgeClass = 'alert-normale';
+            
+            if (data.niveau_alerte === 'optimisé') { color = '#10b981'; badgeClass = 'alert-optimisé'; }
+            else if (data.niveau_alerte === 'normale') { color = '#3b82f6'; badgeClass = 'alert-normale'; }
+            else if (data.niveau_alerte === 'need_fix') { color = '#f97316'; badgeClass = 'alert-need_fix'; }
+            else if (data.niveau_alerte === 'critique') { color = '#ef4444'; badgeClass = 'alert-critique'; }
+            
+            statusBadge.className = 'status-badge ' + badgeClass;
+            
+            statusTitle.innerText = data.etat_machine.replace('_', ' ').toUpperCase();
+            
+            // Handle warnings (Data Drift / Out of bounds)
+            let warningHtml = "";
+            if (data.warnings && data.warnings.length > 0) {
+                warningHtml = `<div style="margin-top: 10px; font-size: 0.8rem; color: #facc15; font-weight: 600;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Hors limites : ${data.warnings.join(', ')}
+                </div>`;
+            }
+            
+            if (data.hybrid_override) {
+                notifText.innerHTML = `<span style="color: #ef4444; font-weight: 800;">[ANOMALIE DÉTECTÉE]</span><br>` + data.notification + warningHtml;
+                statusBadge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> SÉCURITÉ : ` + statusBadge.innerText;
+            } else {
+                notifText.innerHTML = data.notification + warningHtml;
+            }
+            
+            recoCard.style.display = 'block';
+            recoText.innerText = data.recommendation;
+
+            progressBar.style.stroke = color;
+            probDisplay.style.color = color;
+
+            // Add to history
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            
+            const newEntry = {
+                time: timeStr,
+                id: payload.machine_id,
+                temp: payload.temperature_moteur,
+                vib: payload.vibration,
+                prob: prob,
+                color: color,
+                etat: data.niveau_alerte.replace('_', ' ').toUpperCase()
+            };
+            
+            predictionHistory.unshift(newEntry);
+            if (predictionHistory.length > 20) predictionHistory.pop(); 
+            localStorage.setItem('diag_history', JSON.stringify(predictionHistory));
+        }
+    </script>
+</body>
+</html>

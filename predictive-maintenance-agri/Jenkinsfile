@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Install') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Validate Data') {
+            steps {
+                sh 'python src/dataops/validation.py'
+            }
+        }
+
+        stage('Feature Engineering') {
+            steps {
+                sh 'python src/dataops/features.py'
+            }
+        }
+
+        stage('Train') {
+            steps {
+                sh 'python src/models/train.py'
+            }
+        }
+
+        stage('Evaluate') {
+            steps {
+                sh 'python src/models/evaluate.py'
+            }
+        }
+
+        stage('Build Docker') {
+            steps {
+                sh 'docker-compose build'
+            }
+        }
+    }
+}

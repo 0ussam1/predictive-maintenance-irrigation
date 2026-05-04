@@ -1,0 +1,92 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/dataops/preprocessing.py
+    deps:
+    - path: data/raw/sensor.csv
+      hash: md5
+      md5: ac2dc386843ab400a1048c9c1623daa4
+      size: 124058460
+    - path: src/dataops/preprocessing.py
+      hash: md5
+      md5: a5acc9f750c3637725b024daa5e795a0
+      size: 3014
+    outs:
+    - path: data/processed/irrigation_cleaned.csv
+      hash: md5
+      md5: c565b796e7c07db5479d80582d03d4fe
+      size: 23355628
+  features:
+    cmd: python src/dataops/features.py
+    deps:
+    - path: data/processed/irrigation_cleaned.csv
+      hash: md5
+      md5: c565b796e7c07db5479d80582d03d4fe
+      size: 23355628
+    - path: src/dataops/features.py
+      hash: md5
+      md5: 6cf91c9899622b290bb4090b423689d6
+      size: 1629
+    outs:
+    - path: data/processed/pump_features.csv
+      hash: md5
+      md5: 1f97bde0f6493b04c71699e4ffa6066c
+      size: 45234431
+  train:
+    cmd: python src/models/train.py
+    deps:
+    - path: data/processed/pump_features.csv
+      hash: md5
+      md5: 1f97bde0f6493b04c71699e4ffa6066c
+      size: 45234431
+    - path: src/models/train.py
+      hash: md5
+      md5: 07d081464f5608508b949ba296feb951
+      size: 2281
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 3fc4d1925b2ecf8ad1353fca9d997471
+      size: 112162
+  evaluate:
+    cmd: python src/models/evaluate.py
+    deps:
+    - path: data/processed/pump_features.csv
+      hash: md5
+      md5: 1f97bde0f6493b04c71699e4ffa6066c
+      size: 45234431
+    - path: models/model.pkl
+      hash: md5
+      md5: 3fc4d1925b2ecf8ad1353fca9d997471
+      size: 112162
+    - path: src/models/evaluate.py
+      hash: md5
+      md5: c102fc713d7474fbcfc40e8019c15774
+      size: 795
+  validate:
+    cmd: python src/dataops/validation.py
+    deps:
+    - path: data/processed/pump_features.csv
+      hash: md5
+      md5: 1f97bde0f6493b04c71699e4ffa6066c
+      size: 45234431
+    - path: src/dataops/validation.py
+      hash: md5
+      md5: b23e9ca61b8a93301a092549f554511b
+      size: 1092
+  report:
+    cmd: python src/dataops/quality_report.py
+    deps:
+    - path: data/processed/pump_features.csv
+      hash: md5
+      md5: 1f97bde0f6493b04c71699e4ffa6066c
+      size: 45234431
+    - path: src/dataops/quality_report.py
+      hash: md5
+      md5: 1e7bb553014d5950ac48d0f8a99d34cf
+      size: 973
+    outs:
+    - path: data/reports/quality_report_final.json
+      hash: md5
+      md5: dd1e2eb19386462133ba0f6cda443cea
+      size: 7286
