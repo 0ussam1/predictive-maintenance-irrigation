@@ -140,17 +140,13 @@ def predict(data: MachineInput):
         df[f'{col}_lag1'] = df[col]
         df[f'{col}_rolling_mean3'] = df[col]
 
-    # 4. Validation par rapport aux statistiques de référence (Data Drift Detection Light)
-    # On vérifie si les inputs sont dans l'intervalle [min, max] du training
+    # 4. Note: Data drift detection disabled — les ref_stats sont en echelle
+    # capteur brute, incompatibles avec les unites reelles du frontend.
+    # Le pipeline ML (StandardScaler integre) gere la normalisation.
     out_of_bounds = []
-    for col in ["temperature_moteur", "vibration", "pression_eau", "debit_eau"]:
-        val = raw_data[col]
-        stats = ref_stats.get(col, {})
-        if stats:
-            if val < stats["min"] or val > stats["max"]:
-                out_of_bounds.append(col)
+    is_anomaly = False
 
-    # 5. Réordonner les colonnes selon l'ordre EXACT d'entraînement
+    # 5. Reordonner les colonnes selon l'ordre EXACT d'entrainement
     try:
         X = df[FEATURE_NAMES]
     except KeyError as e:
@@ -158,23 +154,13 @@ def predict(data: MachineInput):
         print(f"[ERROR] Colonnes manquantes : {missing}")
         X = df.reindex(columns=FEATURE_NAMES, fill_value=0)
 
-    # 6. Prédiction par le pipeline ML (StandardScaler + RandomForest)
+    # 6. Prediction par le pipeline ML (StandardScaler + RandomForest)
     try:
         prob = float(model.predict_proba(X)[0][1])
     except Exception as e:
-        print(f"[ERROR] Erreur prédiction : {e}")
+        print(f"[ERROR] Erreur prediction : {e}")
         prob = 0.5
 
-    # 7. Couche de sécurité hybride (Règles métiers + IA)
-    # Si des capteurs critiques sont à des niveaux extrêmes, on augmente le risque
-    # même si l'IA reste "optimiste" (sécurité MLOps)
-    is_anomaly = False
-    if "vibration" in out_of_bounds and raw_data["vibration"] > ref_stats["vibration"]["max"] * 2:
-        is_anomaly = True
-        prob = max(prob, 0.85) # Force au moins 85% de risque
-    if "temperature_moteur" in out_of_bounds and raw_data["temperature_moteur"] > ref_stats["temperature_moteur"]["max"] * 1.2:
-        is_anomaly = True
-        prob = max(prob, 0.90)
 
     # Mise à jour des métriques Prometheus
     PREDICTION_COUNT.inc()
