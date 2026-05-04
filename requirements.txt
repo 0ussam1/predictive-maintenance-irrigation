@@ -10,3 +10,4 @@ pytest
 prometheus-client
 evidently
 ucimlrepo
+imbalanced-learn

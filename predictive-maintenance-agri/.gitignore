@@ -1,5 +1,1 @@
 data/raw/sensor.csv
-data/processed/
-mlflow.db
-mlruns/
-models/
