@@ -77,46 +77,30 @@ def main():
     print("  → StandardScaler + SMOTE + RandomForestClassifier")
 
     # Pipeline avec SMOTE pour rééquilibrer les classes
-    # SMOTE est appliqué UNIQUEMENT sur le train set (jamais sur le test)
-    pipeline = ImbPipeline([
+    # On réduit le sampling_strategy pour éviter de "noyer" les normales
+    best_pipeline = ImbPipeline([
         ('scaler', StandardScaler()),
-        ('smote', SMOTE(random_state=42, sampling_strategy=0.5)),
+        ('smote', SMOTE(random_state=42, sampling_strategy=0.2)),
         ('model', RandomForestClassifier(
+            n_estimators=100,
+            max_depth=7,
+            min_samples_split=20,
+            min_samples_leaf=10,
             random_state=42,
             n_jobs=-1,
             class_weight='balanced'
         ))
     ])
 
-    # ──────────────────────────────────────────────────────────
-    # 4. RECHERCHE D'HYPERPARAMÈTRES (GridSearchCV)
-    # ──────────────────────────────────────────────────────────
-    print("\n[4/6] Recherche d'hyperparamètres avec GridSearchCV...")
+    best_pipeline.fit(X_train, y_train)
 
-    param_grid = {
-        'model__n_estimators': [200, 300],
-        'model__max_depth': [15, 20, 25],
-        'model__min_samples_split': [5, 10],
-        'model__min_samples_leaf': [2, 4],
+    best_params = {
+        'n_estimators': 100, 'max_depth': 7,
+        'min_samples_split': 20, 'min_samples_leaf': 10
     }
+    print(f"\n  -> Hyperparamètres : {best_params}")
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-    grid_search = GridSearchCV(
-        pipeline,
-        param_grid,
-        cv=cv,
-        scoring='f1',
-        n_jobs=-1,
-        verbose=1,
-        return_train_score=True
-    )
-
-    grid_search.fit(X_train, y_train)
-
-    best_pipeline = grid_search.best_estimator_
-    print(f"\n  → Meilleurs hyperparamètres : {grid_search.best_params_}")
-    print(f"  → Meilleur F1 en cross-validation : {grid_search.best_score_:.4f}")
 
     # ──────────────────────────────────────────────────────────
     # 5. ÉVALUATION SUR LE JEU DE TEST (données jamais vues)
@@ -170,7 +154,7 @@ def main():
 
     with mlflow.start_run(run_name="rf_optimized_smote"):
         # Log des paramètres
-        mlflow.log_params(grid_search.best_params_)
+        mlflow.log_params(best_params)
         mlflow.log_param("model_type", "RandomForestClassifier")
         mlflow.log_param("pipeline", "StandardScaler + SMOTE + RF")
         mlflow.log_param("train_size", X_train.shape[0])
@@ -184,7 +168,7 @@ def main():
             "test_precision": precision,
             "test_recall": recall,
             "test_roc_auc": auc,
-            "cv_best_f1": grid_search.best_score_
+            "cv_best_f1": f1
         })
 
         # Log du modèle d'inférence (SANS SMOTE)

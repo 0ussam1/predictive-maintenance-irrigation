@@ -1,0 +1,23 @@
+artifact_path: file:D:/MLOPS PRJ/predictive-maintenance-agri/mlruns/1/models/m-00de178bf0654b0ba2eadb33ecc84d64/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-00de178bf0654b0ba2eadb33ecc84d64
+model_size_bytes: 106069
+model_uuid: m-00de178bf0654b0ba2eadb33ecc84d64
+prompts: null
+run_id: a568a8be58704152877323107919ab1a
+utc_time_created: '2026-05-04 23:33:30.772080'
