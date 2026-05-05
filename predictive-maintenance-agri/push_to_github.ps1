@@ -21,9 +21,16 @@ git remote add origin $remoteUrl
 # 3. Branche main
 git branch -M main
 
-# 4. Push
+# 4. Ajout et Commit des changements
+Write-Host "[*] Préparation des fichiers..."
+git add .
+
+$commitMsg = "Update: " + (Get-Date -Format "yyyy-MM-dd HH:mm")
+git commit -m $commitMsg
+
+# 5. Push
 Write-Host ""
-Write-Host ">>> ATTENTION : Une fenêtre va s'ouvrir pour vous connecter à GitHub." -ForegroundColor Yellow
+Write-Host ">>> ATTENTION : Une fenêtre peut s'ouvrir pour vous connecter à GitHub." -ForegroundColor Yellow
 Write-Host ">>> Veuillez valider l'accès pour terminer la publication." -ForegroundColor Yellow
 Write-Host ""
 

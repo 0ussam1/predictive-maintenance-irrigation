@@ -66,20 +66,20 @@ def clean_data(df):
         df = pd.concat([normal, abnormal], ignore_index=True)
 
     # 5. AUGMENTATION DE DONNÉES (Expertise Métier)
-    # On ajoute des cas de pannes par surchauffe/vibration pour que le modèle soit intuitif
-    print("  → Ajout de données synthétiques (Surchauffe & Vibrations)...")
+    # On ajoute des cas de pannes pour les valeurs extrêmes (Surchauffe / Vibration)
+    print("  → Ajout ciblé de données synthétiques (Extrêmes)...")
     np.random.seed(42)
-    n_synthetic = 20000
+    n_synthetic = 10000
     
     synthetic_failures = pd.DataFrame({
-        'temperature_moteur': np.random.uniform(10.0, 50.0, n_synthetic),
-        'vibration': np.random.uniform(60.0, 150.0, n_synthetic),
-        'courant_electrique': np.random.uniform(60.0, 100.0, n_synthetic),
-        'voltage': np.random.uniform(50.0, 80.0, n_synthetic),
-        'pression_eau': np.random.uniform(600.0, 800.0, n_synthetic),
-        'debit_eau': np.random.uniform(80.0, 120.0, n_synthetic),
-        'rpm': np.random.uniform(20.0, 40.0, n_synthetic),
-        'heures_fonctionnement': np.random.uniform(20.0, 30.0, n_synthetic),
+        'temperature_moteur': np.random.uniform(60.0, 500.0, n_synthetic),
+        'vibration': np.random.uniform(80.0, 200.0, n_synthetic),
+        'courant_electrique': np.random.uniform(70.0, 150.0, n_synthetic),
+        'voltage': np.random.uniform(60.0, 100.0, n_synthetic),
+        'pression_eau': np.random.uniform(700.0, 1200.0, n_synthetic),
+        'debit_eau': np.random.uniform(100.0, 200.0, n_synthetic),
+        'rpm': np.random.uniform(30.0, 100.0, n_synthetic),
+        'heures_fonctionnement': np.random.uniform(24.0, 60.0, n_synthetic),
         'failure_next_24h': 1,
         'machine_id': 'pump_synthetic'
     })

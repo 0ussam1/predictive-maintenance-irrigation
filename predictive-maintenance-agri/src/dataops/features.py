@@ -16,22 +16,12 @@ def generate_features(df):
     df['hour'] = df['timestamp'].dt.hour
     df['day_of_week'] = df['timestamp'].dt.dayofweek
     
-    # 2. Features Glissantes (Lags & Rolling)
-    # Très important pour détecter les dégradations progressives
-    sensors = ['temperature_moteur', 'vibration', 'pression_eau', 'debit_eau']
+    # 2. On supprime les calculs de Lag qui causaient la suppression des données synthétiques
+    # (Les données synthétiques n'ont pas d'historique, donc dropna() les supprimait toutes)
     
-    for sensor in sensors:
-        if sensor in df.columns:
-            # Lag 1h
-            df[f'{sensor}_lag1'] = df.groupby('machine_id')[sensor].shift(1)
-            # Moyenne mobile 3h
-            df[f'{sensor}_rolling_mean3'] = df.groupby('machine_id')[sensor].transform(lambda x: x.rolling(window=3).mean())
-
-    # Nettoyage des NaNs créés par les lags
-    df = df.dropna()
-    
-    print(f"Nouvelles features générées. Colonnes totales : {len(df.columns)}")
+    print(f"Features générées. Colonnes totales : {len(df.columns)}")
     return df
+
 
 if __name__ == "__main__":
     try:

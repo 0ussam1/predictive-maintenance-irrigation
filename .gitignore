@@ -1,2 +1,11 @@
 venv/
 .venv/
+**/__pycache__/
+*.pyc
+
+# Project specific ignores
+predictive-maintenance-agri/data/raw/sensor.csv
+predictive-maintenance-agri/mlruns/
+predictive-maintenance-agri/scratch/
+predictive-maintenance-agri/.pytest_cache/
+predictive-maintenance-agri/mlflow.db

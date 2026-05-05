@@ -9,16 +9,8 @@
     "rpm",
     "heures_fonctionnement",
     "hour",
-    "day_of_week",
-    "temperature_moteur_lag1",
-    "temperature_moteur_rolling_mean3",
-    "vibration_lag1",
-    "vibration_rolling_mean3",
-    "pression_eau_lag1",
-    "pression_eau_rolling_mean3",
-    "debit_eau_lag1",
-    "debit_eau_rolling_mean3"
+    "day_of_week"
   ],
-  "feature_count": 18,
+  "feature_count": 10,
   "target": "failure_next_24h"
 }
