@@ -1,0 +1,42 @@
+{
+  "temperature_moteur": {
+    "sensor_mean": 2.4676663131863097,
+    "human_reference": 45.0,
+    "factor": 0.05483702918191799
+  },
+  "vibration": {
+    "sensor_mean": 48.134326644567246,
+    "human_reference": 4.5,
+    "factor": 10.696517032126055
+  },
+  "courant_electrique": {
+    "sensor_mean": 51.96055549405108,
+    "human_reference": 12.0,
+    "factor": 4.330046291170923
+  },
+  "voltage": {
+    "sensor_mean": 44.30897484416353,
+    "human_reference": 230.0,
+    "factor": 0.19264771671375447
+  },
+  "pression_eau": {
+    "sensor_mean": 633.9808023496806,
+    "human_reference": 5.0,
+    "factor": 126.79616046993613
+  },
+  "debit_eau": {
+    "sensor_mean": 75.15889808412551,
+    "human_reference": 60.0,
+    "factor": 1.252648301402092
+  },
+  "rpm": {
+    "sensor_mean": 13.971406476518185,
+    "human_reference": 1500.0,
+    "factor": 0.009314270984345457
+  },
+  "heures_fonctionnement": {
+    "sensor_mean": 16.199980182184312,
+    "human_reference": 1000.0,
+    "factor": 0.016199980182184312
+  }
+}

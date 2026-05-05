@@ -11,6 +11,12 @@
     "hour",
     "day_of_week"
   ],
-  "feature_count": 10,
-  "target": "failure_next_24h"
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 200,
+  "max_depth": 12,
+  "cv_f1_mean": 0.9998212624683311,
+  "cv_f1_std": 0.00019109152869043215,
+  "test_f1": 0.9998978862452772,
+  "test_accuracy": 0.9999183140009802,
+  "test_roc_auc": 1.0000000000000002
 }

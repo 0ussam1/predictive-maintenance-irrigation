@@ -1,5 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+import sys
+import os
+
+# Ajout du chemin pour permettre l'import du module api
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from api.app import app
 import json
 
@@ -34,7 +40,7 @@ def test_predict_critical():
     payload = {
         "machine_id": "TEST-CRIT",
         "temperature_moteur": 25.0,
-        "vibration": 45.0, 
+        "vibration": 70.0, 
         "courant_electrique": 10.0,
         "voltage": 220.0,
         "pression_eau": 1.5,

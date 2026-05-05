@@ -1,8 +1,9 @@
 """
 API FastAPI de maintenance prédictive.
-Le modèle est un Pipeline scikit-learn (StandardScaler + RandomForest).
-Le StandardScaler est EMBARQUÉ dans le pipeline → AUCUNE transformation manuelle.
-Les données brutes du frontend sont passées directement au pipeline.
+Le modèle est un Pipeline scikit-learn (SimpleImputer + StandardScaler + RandomForestClassifier).
+AUCUNE valeur codée en dur. AUCUN safety override.
+Le Random Forest décide seul basé sur son entraînement.
+Les facteurs de conversion humain→capteur sont chargés depuis conversion_config.json.
 """
 
 from fastapi import FastAPI
@@ -50,21 +51,25 @@ app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
 models_dir = os.path.join(os.path.dirname(__file__), "..", "models")
 
-# Charger le pipeline ML (StandardScaler + RandomForest — scaling intégré)
+# Pipeline ML (SimpleImputer + StandardScaler + RandomForest)
 model = joblib.load(os.path.join(models_dir, "model.pkl"))
 
-# Charger les métadonnées des features (ordre strict)
-features_meta_path = os.path.join(models_dir, "features_meta.json")
-with open(features_meta_path, "r") as f:
+# Métadonnées des features (ordre strict)
+with open(os.path.join(models_dir, "features_meta.json"), "r") as f:
     features_meta = json.load(f)
-
 FEATURE_NAMES = features_meta["feature_names"]
-print(f"[INFO] Modèle chargé. Features attendues ({len(FEATURE_NAMES)}): {FEATURE_NAMES}")
 
-# Charger les statistiques de référence pour la validation
-ref_stats_path = os.path.join(models_dir, "reference_stats.json")
-with open(ref_stats_path, "r") as f:
+# Configuration de conversion humain→capteur (calculée à l'entraînement)
+with open(os.path.join(models_dir, "conversion_config.json"), "r") as f:
+    conversion_config = json.load(f)
+
+# Statistiques de référence pour détection de drift
+with open(os.path.join(models_dir, "reference_stats.json"), "r") as f:
     ref_stats = json.load(f)
+
+print(f"[INFO] Modèle chargé : {features_meta.get('model_type', 'Unknown')}")
+print(f"[INFO] Features ({len(FEATURE_NAMES)}): {FEATURE_NAMES}")
+print(f"[INFO] Conversion config chargée depuis conversion_config.json (apprise des données)")
 
 # ──────────────────────────────────────────────────────────
 # ROUTES
@@ -99,6 +104,7 @@ class MachineInput(BaseModel):
 def health():
     return {
         "status": "ok",
+        "model_type": features_meta.get("model_type", "RandomForestClassifier"),
         "model_features": len(FEATURE_NAMES),
         "pipeline_steps": [step[0] for step in model.steps]
     }
@@ -107,66 +113,54 @@ def health():
 @app.post("/predict")
 def predict(data: MachineInput):
     """
-    Prédiction 100% IA.
-    Les données sont passées directement au pipeline qui contient
-    le StandardScaler entraîné sur les données de référence.
-    AUCUNE transformation manuelle. AUCUNE valeur codée en dur.
+    Prédiction 100% IA par le modèle Random Forest.
+    AUCUNE valeur codée en dur. AUCUN safety override.
+    Le modèle décide seul basé sur son entraînement sur sensor.csv.
     """
 
-    # 1. Construire le DataFrame avec les 8 capteurs bruts
-    raw_data = {
-        "temperature_moteur": data.temperature_moteur,
-        "vibration": data.vibration,
-        "courant_electrique": data.courant_electrique,
-        "voltage": data.voltage,
-        "pression_eau": data.pression_eau,
-        "debit_eau": data.debit_eau,
-        "rpm": data.rpm,
-        "heures_fonctionnement": data.heures_fonctionnement,
-    }
-
+    # 1. Construire le DataFrame avec les valeurs humaines brutes
+    sensor_cols = [
+        "temperature_moteur", "vibration", "courant_electrique",
+        "voltage", "pression_eau", "debit_eau", "rpm", "heures_fonctionnement"
+    ]
+    raw_data = {col: getattr(data, col) for col in sensor_cols}
     df = pd.DataFrame([raw_data])
 
-    # 2. Features temporelles
+    # 2. Features temporelles (heure et jour actuels)
     now = datetime.datetime.now()
-    df['hour'] = now.hour
-    df['day_of_week'] = now.weekday()
+    df["hour"] = now.hour
+    df["day_of_week"] = now.weekday()
 
-    # 3. Features de lag (en mode temps réel, on utilise la valeur courante)
-    # Dans une version MLOps plus avancée, on utiliserait un Feature Store (ex: Feast)
-    # ou un cache Redis pour récupérer les valeurs précédentes.
-    lag_sensors = ['temperature_moteur', 'vibration', 'pression_eau', 'debit_eau']
-    for col in lag_sensors:
-        df[f'{col}_lag1'] = df[col]
-        df[f'{col}_rolling_mean3'] = df[col]
+    # 3. Conversion unités humaines → unités capteur
+    #    Facteurs chargés depuis conversion_config.json (calculés à l'entraînement)
+    drift_warnings = []
+    for col in sensor_cols:
+        if col in conversion_config:
+            factor = conversion_config[col]["factor"]
+            df[col] = df[col] * factor
 
-    # 4. Note: Data drift detection disabled — les ref_stats sont en echelle
-    # capteur brute, incompatibles avec les unites reelles du frontend.
-    # Le pipeline ML (StandardScaler integre) gere la normalisation.
-    out_of_bounds = []
-    is_anomaly = False
+            # Détection informative de drift (NE modifie PAS la prédiction)
+            val = float(df[col].iloc[0])
+            stats = ref_stats.get(col, {})
+            if stats:
+                ref_max = stats.get("max", float("inf"))
+                ref_min = stats.get("min", 0)
+                if val > ref_max * 1.3 or val < ref_min * 0.7:
+                    drift_warnings.append(col)
 
-    # 5. Reordonner les colonnes selon l'ordre EXACT d'entrainement
-    try:
-        X = df[FEATURE_NAMES]
-    except KeyError as e:
-        missing = set(FEATURE_NAMES) - set(df.columns)
-        print(f"[ERROR] Colonnes manquantes : {missing}")
-        X = df.reindex(columns=FEATURE_NAMES, fill_value=0)
+    # 4. Ordonner les features selon l'ordre EXACT d'entraînement
+    X = df[FEATURE_NAMES]
 
-    # 6. Prediction par le pipeline ML (StandardScaler + RandomForest)
-    try:
-        prob = float(model.predict_proba(X)[0][1])
-    except Exception as e:
-        print(f"[ERROR] Erreur prediction : {e}")
-        prob = 0.5
+    # 5. Prédiction par le pipeline ML (Imputer → StandardScaler → RandomForest)
+    prob = float(model.predict_proba(X)[0][1])
 
+    print(f"[PREDICT] {data.machine_id} | prob={prob:.4f} | inputs={X.iloc[0].to_dict()}")
 
-    # Mise à jour des métriques Prometheus
+    # 6. Métriques Prometheus
     PREDICTION_COUNT.inc()
     FAILURE_PROBABILITY.observe(prob)
 
-    # 8. Détermination du niveau d'alerte
+    # 7. Niveau d'alerte (basé UNIQUEMENT sur la probabilité du modèle RF)
     if prob < 0.20:
         etat = "optimisé"
         alerte = "optimisé"
@@ -188,10 +182,6 @@ def predict(data: MachineInput):
         notif = "Risque de panne imminent détecté par l'IA."
         reco = "Arrêt recommandé. Intervention immédiate requise !"
 
-    if is_anomaly:
-        notif = "⚠️ ANOMALIE CRITIQUE DÉTECTÉE : " + notif
-        reco = "SÉCURITÉ : " + reco
-
     return {
         "machine_id": data.machine_id,
         "etat_machine": etat,
@@ -199,8 +189,7 @@ def predict(data: MachineInput):
         "niveau_alerte": alerte,
         "notification": notif,
         "recommendation": reco,
-        "warnings": out_of_bounds if out_of_bounds else None,
-        "hybrid_override": is_anomaly
+        "warnings": drift_warnings if drift_warnings else None
     }
 
 

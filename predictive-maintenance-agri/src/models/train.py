@@ -1,7 +1,7 @@
 """
-Module d'entraînement du modèle de maintenance prédictive.
-Pipeline scikit-learn complet : StandardScaler + RandomForestClassifier.
-Le scaler est embarqué dans le pipeline → aucune transformation manuelle à l'inférence.
+Module d'entrainement du modele de maintenance predictive.
+Pipeline scikit-learn : StandardScaler + RandomForestClassifier.
+Le scaler est embarque dans le pipeline - aucune transformation manuelle a l'inference.
 """
 
 import pandas as pd
@@ -12,120 +12,122 @@ import joblib
 import json
 from pathlib import Path
 
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score,
     classification_report, confusion_matrix, roc_auc_score
 )
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from imblearn.over_sampling import SMOTE
-from imblearn.pipeline import Pipeline as ImbPipeline
+
+
+# Features utilisees par le modele
+FEATURES = [
+    "temperature_moteur", "vibration", "courant_electrique",
+    "voltage", "pression_eau", "debit_eau", "rpm", "heures_fonctionnement",
+    "hour", "day_of_week"
+]
 
 
 def main():
     print("=" * 60)
-    print("  ENTRAÎNEMENT DU MODÈLE DE MAINTENANCE PRÉDICTIVE")
+    print("  ENTRAINEMENT - RANDOM FOREST CLASSIFIER")
     print("=" * 60)
 
-    # ──────────────────────────────────────────────────────────
-    # 1. CHARGEMENT DES DONNÉES
-    # ──────────────────────────────────────────────────────────
-    print("\n[1/6] Chargement des données...")
-    df = pd.read_csv("data/processed/pump_features.csv")
-    print(f"  → Dataset : {df.shape[0]} lignes, {df.shape[1]} colonnes")
+    # ----------------------------------------------------------
+    # 1. CHARGEMENT DES DONNEES
+    # ----------------------------------------------------------
+    print("\n[1/6] Chargement des donnees...")
+    df = pd.read_csv("data/processed/pump_features.csv", low_memory=False)
+    print(f"   Dataset brut : {df.shape[0]} lignes, {df.shape[1]} colonnes")
 
-    # Liste des features à utiliser (On simplifie pour garan    # Nettoyage final des NaNs pour être 100% sûr
-    df = df.dropna(subset=features)
-    
-    X = df[features]
+    # Nettoyage des NaN sur les features
+    df = df.dropna(subset=FEATURES)
+    df["failure_next_24h"] = df["failure_next_24h"].astype(int)
+
+    X = df[FEATURES]
     y = df["failure_next_24h"]
 
-    # 2. RÉÉQUILIBRAGE RADICAL (Under-sampling de la normale)
-    print("\n[2/6] Rééquilibrage radical du dataset...")
-    df_normal = df[df["failure_next_24h"] == 0].sample(n=20000, random_state=42)
+    print(f"   Dataset propre : {len(df)} lignes")
+    print(f"   Distribution : Normal={sum(y==0)}, Panne={sum(y==1)}")
+    print(f"   Taux de panne : {y.mean()*100:.1f}%")
+
+    # ----------------------------------------------------------
+    # 2. EQUILIBRAGE DU DATASET
+    # ----------------------------------------------------------
+    print("\n[2/6] Equilibrage du dataset...")
+
+    df_normal = df[df["failure_next_24h"] == 0]
     df_failure = df[df["failure_next_24h"] == 1]
-    df_balanced = pd.concat([df_normal, df_failure], ignore_index=True)
-    
-    X_balanced = df_balanced[features]
-    y_balanced = df_balanced["failure_next_24h"]
+    n_failures = len(df_failure)
 
-    print(f"  → Nouveau dataset équilibré : {df_balanced.shape[0]} lignes")
+    # On sous-echantillonne la classe normale pour equilibrer
+    # On garde 1.5x le nombre de pannes pour un leger desequilibre realiste
+    n_normal_sample = min(len(df_normal), int(n_failures * 1.5))
+    df_normal_sampled = df_normal.sample(n=n_normal_sample, random_state=42)
+    df_balanced = pd.concat([df_normal_sampled, df_failure], ignore_index=True)
+    # Shuffle
+    df_balanced = df_balanced.sample(frac=1, random_state=42).reset_index(drop=True)
 
-    # Split
+    X_balanced = df_balanced[FEATURES]
+    y_balanced = df_balanced["failure_next_24h"].astype(int)
+
+    print(f"   Dataset equilibre : {len(df_balanced)} lignes")
+    print(f"   Normal={sum(y_balanced==0)}, Panne={sum(y_balanced==1)}")
+
+    # ----------------------------------------------------------
+    # 3. SPLIT TRAIN / TEST (80/20 stratifie)
+    # ----------------------------------------------------------
+    print("\n[3/6] Split train/test...")
     X_train, X_test, y_train, y_test = train_test_split(
-        X_balanced, y_balanced, test_size=0.2, random_state=42, stratify=y_balanced
+        X_balanced, y_balanced,
+        test_size=0.2,
+        random_state=42,
+        stratify=y_balanced
     )
+    print(f"   Train : {len(X_train)} lignes")
+    print(f"   Test  : {len(X_test)} lignes")
 
-    # 3. PIPELINE ML (Hist Gradient Boosting pour la performance)
-    print("\n[3/6] Construction du pipeline ML (HistGradientBoosting)...")
-    
-    from sklearn.ensemble import HistGradientBoostingClassifier
-    
-    base_model = HistGradientBoostingClassifier(
-        max_iter=100,
-        max_depth=5,
-        random_state=42
-    )
+    # ----------------------------------------------------------
+    # 4. PIPELINE RANDOM FOREST
+    # ----------------------------------------------------------
+    print("\n[4/6] Construction du pipeline RandomForest...")
 
-    best_pipeline = ImbPipeline([
-        ('scaler', StandardScaler()),
-        ('model', CalibratedClassifierCV(base_model, cv=3, method='sigmoid'))
-    ])
-
-    best_pipeline.fit(X_train, y_train)
-�──────────
-    # 3. PIPELINE ML AVEC RÉÉQUILIBRAGE
-    # ──────────────────────────────────────────────────────────
-    print("\n[3/6] Construction du pipeline ML (Gradient Boosting)...")
-    
-    base_model = GradientBoostingClassifier(
-        n_estimators=100,
-        max_depth=5,
-        random_state=42
-    )
-
-    # Pipeline Équilibré
-    best_pipeline = ImbPipeline([
+    pipeline = Pipeline([
         ('imputer', SimpleImputer(strategy='mean')),
         ('scaler', StandardScaler()),
-        ('model', CalibratedClassifierCV(base_model, cv=3, method='sigmoid'))
+        ('model', RandomForestClassifier(
+            n_estimators=200,
+            max_depth=12,
+            min_samples_split=10,
+            min_samples_leaf=5,
+            max_features='sqrt',
+            class_weight='balanced',
+            random_state=42,
+            n_jobs=-1
+        ))
     ])
 
+    # Cross-validation sur le train set pour evaluer la generalisation
+    print("   Cross-validation (5 folds)...")
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(pipeline, X_train, y_train, cv=cv, scoring='f1', n_jobs=-1)
+    print(f"   CV F1-Scores : {cv_scores.round(4)}")
+    print(f"   CV F1 Mean   : {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")
 
-    best_pipeline.fit(X_train, y_train)
+    # Entrainement final sur tout le train set
+    print("   Entrainement final...")
+    pipeline.fit(X_train, y_train)
 
-    best_params = {
-        'model_type': 'CalibratedGradientBoosting',
-        'max_depth': 5
-    }
-    print(f"\n  -> Modele entraine : GradientBoosting Calibré")
+    # ----------------------------------------------------------
+    # 5. EVALUATION SUR LE JEU DE TEST
+    # ----------------------------------------------------------
+    print("\n[5/6] Evaluation sur le jeu de test...")
 
-
-
-
-    # ──────────────────────────────────────────────────────────
-    # 5. ÉVALUATION SUR LE JEU DE TEST (données jamais vues)
-    # ──────────────────────────────────────────────────────────
-    print("\n[5/6] Évaluation sur le jeu de test (données inconnues)...")
-
-    # Pour la prédiction, on a besoin d'un pipeline SANS SMOTE
-    # Extraire scaler et model du best pipeline
-    best_scaler = best_pipeline.named_steps['scaler']
-    best_model = best_pipeline.named_steps['model']
-
-    # Créer un pipeline d'inférence propre (sans SMOTE)
-    inference_pipeline = Pipeline([
-        ('scaler', best_scaler),
-        ('model', best_model)
-    ])
-
-    test_preds = inference_pipeline.predict(X_test)
-    test_proba = inference_pipeline.predict_proba(X_test)[:, 1]
+    test_preds = pipeline.predict(X_test)
+    test_proba = pipeline.predict_proba(X_test)[:, 1]
 
     acc = accuracy_score(y_test, test_preds)
     f1 = f1_score(y_test, test_preds)
@@ -134,69 +136,62 @@ def main():
     auc = roc_auc_score(y_test, test_proba)
     cm = confusion_matrix(y_test, test_preds)
 
-    print(f"\n  ┌───────────────────────────────────────┐")
-    print(f"  │    RÉSULTATS SUR JEU DE TEST          │")
-    print(f"  ├───────────────────────────────────────┤")
-    print(f"  │  Accuracy  : {acc:.4f}                │")
-    print(f"  │  Precision : {precision:.4f}                │")
-    print(f"  │  Recall    : {recall:.4f}                │")
-    print(f"  │  F1-Score  : {f1:.4f}                │")
-    print(f"  │  ROC AUC   : {auc:.4f}                │")
-    print(f"  └───────────────────────────────────────┘")
+    print(f"\n  {'='*50}")
+    print(f"      RESULTATS SUR JEU DE TEST")
+    print(f"  {'='*50}")
+    print(f"    Accuracy  : {acc:.4f}")
+    print(f"    Precision : {precision:.4f}")
+    print(f"    Recall    : {recall:.4f}")
+    print(f"    F1-Score  : {f1:.4f}")
+    print(f"    ROC AUC   : {auc:.4f}")
+    print(f"  {'='*50}")
 
     print(f"\n  Matrice de confusion :")
     print(f"    TN={cm[0][0]}  FP={cm[0][1]}")
     print(f"    FN={cm[1][0]}  TP={cm[1][1]}")
 
-    print(f"\n  Rapport de classification complet :")
+    print(f"\n  Rapport de classification :")
     print(classification_report(y_test, test_preds, target_names=["Normal", "Panne"]))
 
-    # ──────────────────────────────────────────────────────────
-    # 6. SAUVEGARDE DU MODÈLE + TRACKING MLFLOW
-    # ──────────────────────────────────────────────────────────
-    print("[6/6] Sauvegarde et tracking MLflow...")
+    # Feature importances
+    rf_model = pipeline.named_steps['model']
+    importances = rf_model.feature_importances_
+    sorted_idx = np.argsort(importances)[::-1]
+    print("  Feature Importances :")
+    for i in sorted_idx:
+        print(f"    {FEATURES[i]:25s} : {importances[i]:.4f}")
 
-    # Sauvegarde locale du pipeline d'inférence (PRIORITAIRE)
+    # ----------------------------------------------------------
+    # 6. SAUVEGARDE
+    # ----------------------------------------------------------
+    print("\n[6/6] Sauvegarde du modele et des metadonnees...")
+
     models_dir = Path("models")
     models_dir.mkdir(exist_ok=True)
-    joblib.dump(inference_pipeline, models_dir / "model.pkl")
-    print(f"  ✅ MODÈLE SAUVEGARDÉ LOCALEMENT : {models_dir / 'model.pkl'}")
 
-    try:
-        mlflow.set_experiment("predictive-maintenance-agri")
-        with mlflow.start_run(run_name="logistic_regression_augmented"):
-            # Log des paramètres
-            mlflow.log_params(best_params)
-            mlflow.log_param("model_type", "LogisticRegression")
-            mlflow.log_param("pipeline", "StandardScaler + LogisticRegression")
-            mlflow.log_param("train_size", X_train.shape[0])
-            mlflow.log_param("test_size", X_test.shape[0])
-            mlflow.log_param("n_features", len(features))
+    # Sauvegarde du pipeline complet (imputer + scaler + model)
+    joblib.dump(pipeline, models_dir / "model.pkl")
+    print(f"   Pipeline sauvegarde : models/model.pkl")
 
-            # Log des métriques
-            mlflow.log_metrics({
-                "test_accuracy": acc,
-                "test_f1": f1,
-                "test_precision": precision,
-                "test_recall": recall,
-                "test_roc_auc": auc,
-                "cv_best_f1": f1
-            })
+    # Sauvegarder les metadonnees des features
+    features_meta = {
+        "feature_names": FEATURES,
+        "model_type": "RandomForestClassifier",
+        "n_estimators": 200,
+        "max_depth": 12,
+        "cv_f1_mean": float(cv_scores.mean()),
+        "cv_f1_std": float(cv_scores.std()),
+        "test_f1": float(f1),
+        "test_accuracy": float(acc),
+        "test_roc_auc": float(auc)
+    }
+    with open(models_dir / "features_meta.json", "w") as f:
+        json.dump(features_meta, f, indent=2)
+    print(f"   Metadonnees : models/features_meta.json")
 
-            # Log du modèle d'inférence (SANS SMOTE)
-            mlflow.sklearn.log_model(inference_pipeline, "maintenance_model")
-            print("  ✅ TRACKING MLFLOW : OK")
-    except Exception as e:
-        print(f"  ⚠️ ERREUR MLFLOW (ignorée) : {e}")
-
-    print("\n============================================================")
-    print("  ENTRAÎNEMENT TERMINÉ AVEC SUCCÈS")
-    print("============================================================")
-
-
-    # Sauvegarder aussi les statistiques de référence du dataset pour monitoring
+    # Sauvegarder les statistiques de reference pour le monitoring de drift
     ref_stats = {}
-    for col in features:
+    for col in FEATURES:
         ref_stats[col] = {
             "mean": float(X_train[col].mean()),
             "std": float(X_train[col].std()),
@@ -207,12 +202,76 @@ def main():
         }
     with open(models_dir / "reference_stats.json", "w") as f:
         json.dump(ref_stats, f, indent=2)
+    print(f"   Stats de reference : models/reference_stats.json")
+
+    # Feature importances JSON
+    feat_importances = {FEATURES[i]: float(importances[i]) for i in range(len(FEATURES))}
+    with open(models_dir / "feature_importances.json", "w") as f:
+        json.dump(feat_importances, f, indent=2)
+    print(f"   Feature importances : models/feature_importances.json")
+
+    # Configuration de conversion Humain → Capteur (calculee depuis les donnees)
+    SENSOR_COLS = [f for f in FEATURES if f not in ["hour", "day_of_week"]]
+    normal_data_full = df[df["failure_next_24h"] == 0]
+    sensor_means = {col: float(normal_data_full[col].mean()) for col in SENSOR_COLS}
+
+    # Valeurs de reference humaines (calibration UI)
+    human_references = {
+        "temperature_moteur": 45.0,
+        "vibration": 4.5,
+        "courant_electrique": 12.0,
+        "voltage": 230.0,
+        "pression_eau": 5.0,
+        "debit_eau": 60.0,
+        "rpm": 1500.0,
+        "heures_fonctionnement": 1000.0
+    }
+
+    conversion_config = {}
+    for col in SENSOR_COLS:
+        conversion_config[col] = {
+            "sensor_mean": sensor_means[col],
+            "human_reference": human_references[col],
+            "factor": sensor_means[col] / human_references[col]
+        }
+
+    with open(models_dir / "conversion_config.json", "w") as f:
+        json.dump(conversion_config, f, indent=2)
+    print(f"   Conversion config : models/conversion_config.json")
+
+    # Tracking MLflow
+    try:
+        mlflow.set_experiment("predictive-maintenance-agri")
+        with mlflow.start_run(run_name="random_forest_v2"):
+            mlflow.log_param("model_type", "RandomForestClassifier")
+            mlflow.log_param("n_estimators", 200)
+            mlflow.log_param("max_depth", 12)
+            mlflow.log_param("pipeline", "Imputer + StandardScaler + RandomForest")
+            mlflow.log_param("train_size", X_train.shape[0])
+            mlflow.log_param("test_size", X_test.shape[0])
+            mlflow.log_param("n_features", len(FEATURES))
+            mlflow.log_param("class_weight", "balanced")
+
+            mlflow.log_metrics({
+                "test_accuracy": acc,
+                "test_f1": f1,
+                "test_precision": precision,
+                "test_recall": recall,
+                "test_roc_auc": auc,
+                "cv_f1_mean": float(cv_scores.mean()),
+                "cv_f1_std": float(cv_scores.std())
+            })
+
+            mlflow.sklearn.log_model(pipeline, "maintenance_model")
+            print("   MLflow tracking : OK")
+    except Exception as e:
+        print(f"   MLflow (ignore) : {e}")
 
     print(f"\n{'=' * 60}")
-    print(f"  ✅ MODÈLE SAUVEGARDÉ : models/model.pkl")
-    print(f"  ✅ MÉTADONNÉES       : models/features_meta.json")
-    print(f"  ✅ STATS RÉFÉRENCE   : models/reference_stats.json")
-    print(f"  ✅ MLFLOW TRACKING   : OK")
+    print(f"  ENTRAINEMENT TERMINE AVEC SUCCES")
+    print(f"  Modele : RandomForestClassifier (200 arbres)")
+    print(f"  F1-Score Test : {f1:.4f}")
+    print(f"  ROC AUC Test  : {auc:.4f}")
     print(f"{'=' * 60}")
 
 

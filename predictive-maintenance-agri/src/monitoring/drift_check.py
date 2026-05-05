@@ -9,7 +9,7 @@ def main():
 
     drift = (current_mean - ref_mean).abs()
 
-    print("=== Drift simple (différence des moyennes) ===")
+    print("=== Drift simple (diffrence des moyennes) ===")
     print(drift.sort_values(ascending=False))
 
 if __name__ == "__main__":

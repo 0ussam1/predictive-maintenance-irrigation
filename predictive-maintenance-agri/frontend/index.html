@@ -350,43 +350,43 @@
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-temperature-high"></i> TEMP. MOTEUR (capteur)</label>
-                        <input type="number" step="0.1" id="temp_moteur" value="2.41">
+                        <label><i class="fa-solid fa-temperature-high"></i> TEMP. MOTEUR (°C)</label>
+                        <input type="number" step="1" id="temp_moteur" value="45">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-wave-square"></i> VIBRATION (capteur)</label>
-                        <input type="number" step="0.01" id="vibration" value="47.4">
+                        <label><i class="fa-solid fa-wave-square"></i> VIBRATION (mm/s)</label>
+                        <input type="number" step="0.1" id="vibration" value="4.5">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-bolt"></i> COURANT (capteur)</label>
-                        <input type="number" step="0.1" id="courant" value="51.0">
+                        <label><i class="fa-solid fa-bolt"></i> COURANT (A)</label>
+                        <input type="number" step="0.1" id="courant" value="12.0">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-plug"></i> VOLTAGE (capteur)</label>
-                        <input type="number" step="0.1" id="voltage" value="43.8">
+                        <label><i class="fa-solid fa-plug"></i> VOLTAGE (V)</label>
+                        <input type="number" step="1" id="voltage" value="230">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-droplet"></i> PRESSION EAU (capteur)</label>
-                        <input type="number" step="0.01" id="pression" value="592.7">
+                        <label><i class="fa-solid fa-droplet"></i> PRESSION EAU (bar)</label>
+                        <input type="number" step="0.1" id="pression" value="5.0">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-gauge-high"></i> DÉBIT EAU (capteur)</label>
-                        <input type="number" step="0.1" id="debit" value="72.8">
+                        <label><i class="fa-solid fa-gauge-high"></i> DÉBIT EAU (L/min)</label>
+                        <input type="number" step="1" id="debit" value="60">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-rotate"></i> RPM (capteur)</label>
-                        <input type="number" step="0.1" id="rpm" value="13.5">
+                        <label><i class="fa-solid fa-rotate"></i> RPM</label>
+                        <input type="number" step="1" id="rpm" value="1500">
                     </div>
 
                     <div class="field-group">
-                        <label><i class="fa-solid fa-clock"></i> HEURES FONCT.</label>
-                        <input type="number" step="0.1" id="heures" value="15.8">
+                        <label><i class="fa-solid fa-clock"></i> HEURES FONCT. (h)</label>
+                        <input type="number" step="1" id="heures" value="1000">
                     </div>
 
                     <button type="submit" class="btn-submit">
@@ -403,7 +403,7 @@
             </div>
 
             <div class="status-header">
-                <div id="status-badge" class="status-badge alert-normal" style="display: none;">NORMAL</div>
+                <div id="status-badge" class="status-badge alert-normale" style="display: none;">NORMAL</div>
                 <h2 id="status-title" style="font-size: 1.5rem; font-weight: 800;">État de Santé</h2>
             </div>
 
@@ -438,14 +438,14 @@
         // IDs et valeurs par défaut
         const defaultValues = {
             'machine_id': 'PUMP-AGRI-01',
-            'temp_moteur': 2.41,
-            'vibration': 47.4,
-            'courant': 51.0,
-            'voltage': 43.8,
-            'pression': 592.7,
-            'debit': 72.8,
-            'rpm': 13.5,
-            'heures': 15.8
+            'temp_moteur': 45,
+            'vibration': 4.5,
+            'courant': 12.0,
+            'voltage': 230,
+            'pression': 5.0,
+            'debit': 60,
+            'rpm': 1500,
+            'heures': 1000
         };
 
         const inputIds = Object.keys(defaultValues);
